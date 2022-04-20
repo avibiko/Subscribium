@@ -1,11 +1,16 @@
 pragma solidity ^0.8.13;
+
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Subscribium {
+contract Subscribium is Ownable {
+    using SafeMath for uint256;
+
     address public publisher;
-    address public usdc = 0xFda95Ce44E948206AaF38CBe0af115FF9B8cD2e8;
+    address public stablecoin;
 
-    mapping(address => SubscriptionTerms) private subscribers;
+    mapping(address => SubscriptionTerms) public subscribers;
     mapping(address => uint256) nextValidTime;
 
     struct SubscriptionTerms {
@@ -13,14 +18,15 @@ contract Subscribium {
         uint256 value;
     }
 
-    constructor(address _publisher) {
+    constructor(address _publisher, address _stablecoin) {
         publisher = _publisher;
+        stablecoin = _stablecoin;
     }
 
     function Subscribe(uint256 _interval, uint256 _value) public {
         address subscriber = msg.sender;
 
-        uint256 allowance = ERC20(usdc).allowance(subscriber, address(this));
+        uint256 allowance = ERC20(stablecoin).allowance(subscriber, address(this));
         require(allowance >= _value, "Allowance is to small to subscribe");
 
         SubscriptionTerms memory terms = SubscriptionTerms(_interval, _value);
@@ -28,9 +34,15 @@ contract Subscribium {
         nextValidTime[subscriber] = 0;
     }
 
+    function Unsubscribe() public {
+        address subscriber = msg.sender;
+        nextValidTime[subscriber] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    }
+
     function ExecuteSubscription(address _subscriber) public returns (bool) {
         require(block.timestamp >= nextValidTime[_subscriber]);
-        bool result = ERC20(usdc).transferFrom(
+        
+        bool result = ERC20(stablecoin).transferFrom(
             _subscriber,
             address(this),
             subscribers[_subscriber].value
@@ -38,10 +50,7 @@ contract Subscribium {
 
         if (result == true) {
             nextValidTime[_subscriber] =
-                block.timestamp +
-                subscribers[_subscriber].interval;
-        } else {
-            nextValidTime[_subscriber] = 2**255;
+                subscribers[_subscriber].interval.add(block.timestamp);
         }
 
         return result;
