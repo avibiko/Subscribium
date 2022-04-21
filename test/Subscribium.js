@@ -39,11 +39,17 @@ contract('Subscribium', (accounts) => {
         const subscription = await subscribers(subscriber);
         
         const interval = subscription.interval.words[0];
+        const value = subscription.value.words[0];
 
+        let balanceBefore = await tokenInstance.balanceOf(subscriber)
         let result = await subsInstance.ExecuteSubscription(subscriber);
-        assert.equal(result, true, "subscription executed 1");
-
-        result = await subsInstance.ExecuteSubscription(subscriber);
-        assert.equal(result, false, "subscription executed 2");
+        let balanceAfter = await tokenInstance.balanceOf(subscriber);
+        assert.equal(balanceBefore.words[0] - value, balanceAfter.words[0], "subscription executed 1");
+        
+        balanceBefore = balanceAfter
+        try {
+            result = await subsInstance.ExecuteSubscription(subscriber);
+        } catch (e) {}
+        assert.equal(balanceBefore.words[0], balanceAfter.words[0], "subscription executed 2");
     });
 });
