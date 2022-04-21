@@ -43,7 +43,7 @@ contract Subscribium is Ownable{
     }
 
     function ExecuteSubscription(address _subscriber) public returns (bool) {
-        require(block.timestamp >= nextValidTime[_subscriber]);
+        require(block.timestamp >= nextValidTime[_subscriber], "Can't execute before duedate");
         
         bool result = ERC20(stablecoin).transferFrom(
             _subscriber,
@@ -56,6 +56,6 @@ contract Subscribium is Ownable{
                 subscribers[_subscriber].interval.add(block.timestamp);
         }
 
-        return result;
+        return false;
     }
 }
