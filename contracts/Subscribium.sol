@@ -3,12 +3,14 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 
-contract Subscribium is Ownable {
+contract Subscribium is Ownable{
     using SafeMath for uint256;
 
     address public publisher;
     address public stablecoin;
+    address payable payments;
 
     mapping(address => SubscriptionTerms) public subscribers;
     mapping(address => uint256) nextValidTime;
@@ -18,9 +20,10 @@ contract Subscribium is Ownable {
         uint256 value;
     }
 
-    constructor(address _publisher, address _stablecoin) {
+    constructor(address _publisher, address _stablecoin, address payable _payments) {
         publisher = _publisher;
         stablecoin = _stablecoin;
+        payments = _payments;
     }
 
     function Subscribe(uint256 _interval, uint256 _value) public {
@@ -44,7 +47,7 @@ contract Subscribium is Ownable {
         
         bool result = ERC20(stablecoin).transferFrom(
             _subscriber,
-            address(this),
+            payments,
             subscribers[_subscriber].value
         );
 
@@ -55,6 +58,4 @@ contract Subscribium is Ownable {
 
         return result;
     }
-
-    
 }
